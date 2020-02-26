@@ -22,11 +22,11 @@ const char* password =  "";
 
 // MQTT
 PubSubClient client(espClient);
-const char* mqttCommandTopic = "team1/mood";
-const char* mqttVoteTopic = "team1/vote";
+const char* mqttCommandTopic = "test/mood";
+const char* mqttVoteTopic = "test/vote";
 const char* mqttServer = "broker.tec2020.fun";
 const unsigned int mqttPort = 1883;
-const char* mqttClientId = "team1ctrl";
+const char* mqttClientId = "test1ctrl";
 const char* mqttUser = "sammy";
 const char* mqttPassword = "1234";
 
@@ -73,34 +73,40 @@ void ProcessRemoteCommands() {
   
   if (irrecv.decode(&results)) {
 
+    if (!client.connected()) {
+      Reconnect();
+    }
+
+    client.loop();
+      
     switch (results.value) {
       case Mood1:
         Serial.println("Mood 1 - Super Happy");
-        PublishCommand('1');
+        client.publish(mqttCommandTopic, "1");
         break;
       case Mood2:
         Serial.println("Mood 2 - Happy");
-        PublishCommand('2');
+        client.publish(mqttCommandTopic, "2");
         break;
       case Mood3:
         Serial.println("Mood 3 - OK");
-        PublishCommand('3');
+        client.publish(mqttCommandTopic, "3");
         break;
       case Mood4:
         Serial.println("Mood 4 - Not Happy");
-        PublishCommand('4');
+        client.publish(mqttCommandTopic, "4");
         break;
       case Mood5:
         Serial.println("Mood 5 - Angry");
-        PublishCommand('5');
+        client.publish(mqttCommandTopic, "5");
         break;        
       case VoteUp:
         Serial.println("Vote Up");
-        PublishVote('+');
+        client.publish(mqttVoteTopic, "+");  
         break;    
       case VoteDown:
         Serial.println("Vote Down");
-        PublishVote('-');
+        client.publish(mqttVoteTopic, "-");  
         break;                              
       default:
         serialPrintUint64(results.value, HEX);
@@ -126,24 +132,18 @@ void SerialCommand() {
 
   if (command > 0 && command < 6) {
     Serial.println("Serial command to set mood to "+(String)command);
-    PublishCommand(command);
-  }
-}
+    
+    if (!client.connected()) {
+      Reconnect();
+    }
 
-void PublishCommand(const char value) {
-  if (!client.connected()) {
-    Reconnect();
-  }
-  client.loop();
-  client.publish(mqttCommandTopic, &value);  
-}
+    client.loop();
 
-void PublishVote(const char value) {
-  if (!client.connected()) {
-    Reconnect();
+    char buf[1];
+    dtostrf(command, 1, 0, buf);
+
+    client.publish(mqttCommandTopic, buf);
   }
-  client.loop();
-  client.publish(mqttVoteTopic, &value);  
 }
 
 void SetupWifi() {
